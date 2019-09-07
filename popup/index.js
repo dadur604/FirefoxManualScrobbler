@@ -45,8 +45,7 @@ document.addEventListener("click", function(e) {
   }
 
   if (e.target.id === "submit-clear"){
-    document.getElementById("songname").value = ""
-    document.getElementById("artistname").value = ""
+	handleClear()
   }
 
   if (e.target.id === "submit-search"){
@@ -66,8 +65,7 @@ document.addEventListener("click", function(e) {
 function checkCredentials () {
   if (lfm.sessionCredentials) {
     showDiv("scrobble-div")
-	browser.storage.local.set({session: { key: lfm.sessionCredentials.key, username: lfm.sessionCredentials.username}})
-	
+    browser.storage.local.set({session: { key: lfm.sessionCredentials.key, username: lfm.sessionCredentials.username}})
     return
   }
 
@@ -159,23 +157,36 @@ function handleSearch (songname, artistname) {
 }
 
 function handleSubmit (songname, artistname) {
-    lfm.track.scrobble({
-      'artist' : artistname,
-      'track' : songname,
-      'timestamp' : (new Date()).getTime() / 1000
-    
-    }, function (err, scrobbles) {
-      if (err) { return console.log('We\'re in trouble', err); }
-    
-      console.log('We have just scrobbled:', scrobbles);
-      
-    });
+  showLoader()
+  lfm.track.scrobble({
+    'artist' : artistname,
+    'track' : songname,
+    'timestamp' : (new Date()).getTime() / 1000
+  
+  }, function (err, scrobbles) {
+    if (err) {
+      handleClear()
+      document.querySelector('.circle-loader').style.borderColor = "red"
+      loadCompleteNoCheck()
+      setTimeout(() => { showDiv('scrobble-div') }, 1500)
+      return console.log('We\'re in trouble', err);
+    }
+  handleClear()
+  document.querySelector('.circle-loader').style.borderColor = ""
+  loadComplete(true)
+  setTimeout(() => { showDiv('scrobble-div') }, 1500)
+    console.log('We have just scrobbled:', scrobbles); 
+  });
 }
 
 function showDiv (divname){
   var auth = document.getElementById("auth-div")
   var scrob = document.getElementById("scrobble-div")
   var search = document.getElementById("search-results-div")
+  
+  document.querySelector('.circle-loader').style.display = "none"
+  document.querySelector('.checkmark').style.display = "none"
+  loadComplete(false)
 
   auth.hidden = true
   scrob.hidden = true
@@ -191,5 +202,29 @@ function showDiv (divname){
     case "search-results-div":
       search.hidden = false
       break
+  }
+}
+
+function handleClear() {
+  document.getElementById("songname").value = ""
+  document.getElementById("artistname").value = ""
+}
+
+function showLoader() {
+  showDiv()
+  document.getElementsByClassName('circle-loader')[0].style.display = ""
+}
+
+function loadCompleteNoCheck(){
+  document.querySelector('.circle-loader').classList.add('load-complete')
+}
+
+function loadComplete(comp) {
+  if (comp) {
+    document.querySelector('.circle-loader').classList.add('load-complete')
+    document.querySelector('.checkmark').style.display = ""
+  } else {
+    document.querySelector('.circle-loader').classList.remove('load-complete')
+    document.querySelector('.checkmark').style.display = "none"
   }
 }

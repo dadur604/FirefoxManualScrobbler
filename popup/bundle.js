@@ -12152,8 +12152,9 @@ Point.prototype.getY = function getY() {
 
 Point.prototype.mul = function mul(k) {
   k = new BN(k, 16);
-
-  if (this._hasDoubles(k))
+  if (this.isInfinity())
+    return this;
+  else if (this._hasDoubles(k))
     return this.curve._fixedNafMul(this, k);
   else if (this.curve.endo)
     return this.curve._endoWnafMulAdd([ this ], [ k ]);
@@ -14564,9 +14565,9 @@ utils.intFromLE = intFromLE;
 },{"bn.js":16,"minimalistic-assert":105,"minimalistic-crypto-utils":106}],82:[function(require,module,exports){
 module.exports={
   "_from": "elliptic@^6.0.0",
-  "_id": "elliptic@6.5.0",
+  "_id": "elliptic@6.5.1",
   "_inBundle": false,
-  "_integrity": "sha512-eFOJTMyCYb7xtE/caJ6JJu+bhi67WCYNbkGSknu20pmM8Ke/bqOfdnZWxyoGN26JgfxTbXrsCkEw4KheCT/KGg==",
+  "_integrity": "sha512-xvJINNLbTeWQjrl6X+7eQCrIy/YPv5XCpKW6kB5mKvtnGILoLDcySuwomfdzt0BMdLNVnuRNTuzKNHj0bva1Cg==",
   "_location": "/browserify/elliptic",
   "_phantomChildren": {},
   "_requested": {
@@ -14583,10 +14584,10 @@ module.exports={
     "/browserify/browserify-sign",
     "/browserify/create-ecdh"
   ],
-  "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.5.0.tgz",
-  "_shasum": "2b8ed4c891b7de3200e14412a5b8248c7af505ca",
+  "_resolved": "https://registry.npmjs.org/elliptic/-/elliptic-6.5.1.tgz",
+  "_shasum": "c380f5f909bf1b9b4428d028cd18d3b0efd6b52b",
   "_spec": "elliptic@^6.0.0",
-  "_where": "C:\\Users\\dadur\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\browserify-sign",
+  "_where": "C:\\Users\\a\\AppData\\Roaming\\npm\\node_modules\\browserify\\node_modules\\browserify-sign",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -14608,19 +14609,19 @@ module.exports={
   "description": "EC cryptography",
   "devDependencies": {
     "brfs": "^1.4.3",
-    "coveralls": "^2.11.3",
-    "grunt": "^0.4.5",
+    "coveralls": "^3.0.4",
+    "grunt": "^1.0.4",
     "grunt-browserify": "^5.0.0",
     "grunt-cli": "^1.2.0",
     "grunt-contrib-connect": "^1.0.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-uglify": "^1.0.1",
     "grunt-mocha-istanbul": "^3.0.1",
-    "grunt-saucelabs": "^8.6.2",
+    "grunt-saucelabs": "^9.0.1",
     "istanbul": "^0.4.2",
-    "jscs": "^2.9.0",
+    "jscs": "^3.0.7",
     "jshint": "^2.6.0",
-    "mocha": "^2.1.0"
+    "mocha": "^6.1.4"
   },
   "files": [
     "lib"
@@ -14647,7 +14648,7 @@ module.exports={
     "unit": "istanbul test _mocha --reporter=spec test/index.js",
     "version": "grunt dist && git add dist/"
   },
-  "version": "6.5.0"
+  "version": "6.5.1"
 }
 
 },{}],83:[function(require,module,exports){
@@ -30600,8 +30601,7 @@ document.addEventListener("click", function(e) {
   }
 
   if (e.target.id === "submit-clear"){
-    document.getElementById("songname").value = ""
-    document.getElementById("artistname").value = ""
+	handleClear()
   }
 
   if (e.target.id === "submit-search"){
@@ -30621,8 +30621,7 @@ document.addEventListener("click", function(e) {
 function checkCredentials () {
   if (lfm.sessionCredentials) {
     showDiv("scrobble-div")
-	browser.storage.local.set({session: { key: lfm.sessionCredentials.key, username: lfm.sessionCredentials.username}})
-	
+    browser.storage.local.set({session: { key: lfm.sessionCredentials.key, username: lfm.sessionCredentials.username}})
     return
   }
 
@@ -30714,23 +30713,36 @@ function handleSearch (songname, artistname) {
 }
 
 function handleSubmit (songname, artistname) {
-    lfm.track.scrobble({
-      'artist' : artistname,
-      'track' : songname,
-      'timestamp' : (new Date()).getTime() / 1000
-    
-    }, function (err, scrobbles) {
-      if (err) { return console.log('We\'re in trouble', err); }
-    
-      console.log('We have just scrobbled:', scrobbles);
-      
-    });
+  showLoader()
+  lfm.track.scrobble({
+    'artist' : artistname,
+    'track' : songname,
+    'timestamp' : (new Date()).getTime() / 1000
+  
+  }, function (err, scrobbles) {
+    if (err) {
+      handleClear()
+      document.querySelector('.circle-loader').style.borderColor = "red"
+      loadCompleteNoCheck()
+      setTimeout(() => { showDiv('scrobble-div') }, 1500)
+      return console.log('We\'re in trouble', err);
+    }
+  handleClear()
+  document.querySelector('.circle-loader').style.borderColor = ""
+  loadComplete(true)
+  setTimeout(() => { showDiv('scrobble-div') }, 1500)
+    console.log('We have just scrobbled:', scrobbles); 
+  });
 }
 
 function showDiv (divname){
   var auth = document.getElementById("auth-div")
   var scrob = document.getElementById("scrobble-div")
   var search = document.getElementById("search-results-div")
+  
+  document.querySelector('.circle-loader').style.display = "none"
+  document.querySelector('.checkmark').style.display = "none"
+  loadComplete(false)
 
   auth.hidden = true
   scrob.hidden = true
@@ -30746,6 +30758,30 @@ function showDiv (divname){
     case "search-results-div":
       search.hidden = false
       break
+  }
+}
+
+function handleClear() {
+  document.getElementById("songname").value = ""
+  document.getElementById("artistname").value = ""
+}
+
+function showLoader() {
+  showDiv()
+  document.getElementsByClassName('circle-loader')[0].style.display = ""
+}
+
+function loadCompleteNoCheck(){
+  document.querySelector('.circle-loader').classList.add('load-complete')
+}
+
+function loadComplete(comp) {
+  if (comp) {
+    document.querySelector('.circle-loader').classList.add('load-complete')
+    document.querySelector('.checkmark').style.display = ""
+  } else {
+    document.querySelector('.circle-loader').classList.remove('load-complete')
+    document.querySelector('.checkmark').style.display = "none"
   }
 }
 },{"lastfmapi":190}]},{},[203]);
