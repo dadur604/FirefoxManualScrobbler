@@ -1,8 +1,8 @@
 var LastfmApi = require('lastfmapi')
 
 var lfm = new LastfmApi({
-  'api_key' : '914fa24ecc586c15b6b979d170dde4ea',
-	'secret' : '2288df1e306518f149ff33c785f15ca0'
+  'api_key' : '',
+	'secret' : ''
 })
 
 checkCredentials()
